@@ -3,20 +3,18 @@
       <div id="left-column"></div>
       <div id="branding">
         <img src="@/assets/images/logo.png" />
-        <h1>Login - Chat Application</h1>
+        <h1>Login - Chat Application {{ firstName }}</h1>
       </div>
       <div id="login-form">
-        <form method="post" action="/">
           <input
             type="text"
-            name="username"
             placeholder="enter mobile or email"
-            value=""
+            v-model="name"
           />
-          <p class="error show">Error message here</p>
-          <input type="password" name="password" placeholder="enter password" />
-          <input type="submit" value="Login" />
-        </form>
+          <p class="error" v-show="loginErrors.email" >{{ loginErrors.email }}</p>
+          <input type="password" v-model="password" placeholder="enter password" />
+          <p class="error" v-show="loginErrors.password">{{ loginErrors.password }}</p>
+          <input type="submit" value="Login" @click="doLogin"/>
       </div>
     </div>
 </template>
@@ -24,6 +22,8 @@
   <script>
   // @ is an alias to /src
 //   import HelloWorld from '@/components/HelloWorld.vue'
+    import loginValidations from "@/validations/loginValidations";
+import {mapState} from 'vuex'
   
   export default {
     name: 'LoginView',
@@ -31,14 +31,31 @@
     },
     data(){
         return {
-
+            name: '',
+            password: '',
+            loginErrors: {
+                "email": null,
+                "password": null
+            }
         }
     },
     computed: {
-
+        // auth is namespace
+        ...mapState('auth',{
+             firstName: (state) => state.name
+        })
     },
     methods:{
-
+        doLogin(){
+            let validations = new loginValidations(this.name,String(this.password));
+            this.loginErrors = validations.checkValidations();
+            for(let key in this.loginErrors){
+                if(this.loginErrors[key]?.length > 0){
+                    return
+                }
+            }
+            console.log("rest of the code")
+        }
     }
   }
   </script>
