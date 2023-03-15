@@ -20,14 +20,14 @@
             </tr>
           </thead>
           <tbody id="users-table">
-            <tr id="">
+            <tr id="" v-for="(user,index) in users" :key="index">
               <td class="name">
-                <img src="@/assets/images/user1.png" />
-                <span>User 1</span>
+                <img :src="user.url" />
+                <span>{{ user.name }}</span>
               </td>
-              <td>email@email.com</td>
+              <td>{{ user.email }}</td>
               <td class="manage">
-                <img src="@/assets/images/trash.png" alt="Delete" />
+                <span @click="RemoveUser(user.id)"><img src="@/assets/images/trash.png" alt="Delete" /></span>
               </td>
             </tr>
           </tbody>
@@ -42,19 +42,19 @@
           <h2>Create New User</h2>
         </div>
         <div class="modal-body">
-          <form id="add-user-form">
-            <input type="text" placeholder="enter name" name="name" />
-            <p class="error show">This is error</p>
-            <input type="text" placeholder="enter email" name="email" />
-            <input type="text" placeholder="enter mobile" name="mobile" />
+          <div id="add-user-form">
+            <input type="text" placeholder="enter name" v-model="userInformation.name" />
+            <!-- <p class="error show">This is error</p> -->
+            <input type="text" placeholder="enter email" v-model="userInformation.email" />
+            <input type="text" placeholder="enter mobile" v-model="userInformation.mobile" />
             <input
               type="password"
               placeholder="enter password"
-              name="password"
+              v-model="userInformation.password"
             />
-            <input type="file" name="avatar" />
-            <input type="submit" value="Submit" />
-          </form>
+            <input type="file"  @change="handleAttachment"/>
+            <input type="submit" value="Submit" @click="addNewUser" />
+          </div>
         </div>
       </div>
     </div>
@@ -62,7 +62,7 @@
   
   <script>
 import viewRouteVue from '@/components/viewRoute.vue';
-import { getUser } from '@/services/user/user';
+import { getUser,addUser,removeUser } from '@/services/user/user';
 
 
   
@@ -73,7 +73,14 @@ import { getUser } from '@/services/user/user';
     },
     data(){
         return {
-            users: []
+            users: [],
+            userInformation: {
+                name: "",
+                email: "",
+                mobile: null,
+                password: "",
+                fileName: ""
+            }
         }
     },
     computed: {
@@ -101,8 +108,61 @@ import { getUser } from '@/services/user/user';
             }catch(err){
                 console.log(err);
             }
-        }
+        },
 
+        // file handling start
+        handleAttachment(e){
+            this.userInformation.fileName = "";
+
+            if(e.target.files.length > 0){
+                let files = e.target.files;
+                this.convertAndSaveFilesToBase64(files);
+            }
+        },
+        async convertAndSaveFilesToBase64(files) {
+            this.userInformation.fileName = await this.getBase64(files[0]);
+        },
+        getBase64(file) {
+            let reader = new FileReader();
+
+            return new Promise((resolve, reject) => {
+                reader.onabort = () => {
+                    reject({ name: 'Error', message: 'Could not read file' });
+                };
+
+                reader.onloadend = () => {
+                    resolve({
+                        name: file.name,
+                        base64: reader.result,
+                        size: file.size,
+                    });
+                };
+
+                reader.readAsDataURL(file);
+            });
+        },
+        // file handling done
+        async addNewUser(){
+            let user = {
+                ...this.userInformation,
+                image: this.userInformation?.fileName?.base64
+            }
+            try{
+                const newUser = await addUser(user);
+                this.users.push(newUser.data.user);
+                this.closeModal();
+            }catch(err){
+                console.log(err)
+            }
+        },
+        async RemoveUser(id){
+            try{
+                await removeUser(id);
+                this.users.splice(this.users.findIndex(item => item.id == id),1);
+            }catch(err){
+                console.log(err)
+            }
+        }
     }
   }
   </script>
