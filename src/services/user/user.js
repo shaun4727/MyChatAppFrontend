@@ -11,3 +11,9 @@ export const getUser = async () => {
     const url = `${baseURL}/users/`;
     return axios.get(url);
 }
+
+export const removeUser = async (id) => {
+    const url = `${baseURL}/users/${id}`;
+    return axios.delete(url);
+}
+
