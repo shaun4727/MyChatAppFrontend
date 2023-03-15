@@ -23,7 +23,10 @@
   // @ is an alias to /src
 //   import HelloWorld from '@/components/HelloWorld.vue'
     import loginValidations from "@/validations/loginValidations";
-import {mapState} from 'vuex'
+import {mapState} from 'vuex';
+import { mapActions } from "vuex";
+import {LOGIN_ACTION} from '@/store/storeconstants';
+
   
   export default {
     name: 'LoginView',
@@ -43,10 +46,15 @@ import {mapState} from 'vuex'
         // auth is namespace
         ...mapState('auth',{
              firstName: (state) => state.name
-        })
+        }),
+        
+
     },
     methods:{
-        doLogin(){
+        ...mapActions('auth',{
+            login: LOGIN_ACTION,
+        }),
+        async doLogin(){
             let validations = new loginValidations(this.name,String(this.password));
             this.loginErrors = validations.checkValidations();
             for(let key in this.loginErrors){
@@ -54,7 +62,13 @@ import {mapState} from 'vuex'
                     return
                 }
             }
-            console.log("rest of the code")
+            
+            // login functionality
+            await this.login({username: this.name,password:this.password});
+            const userDetail = window.localStorage.getItem('userDetail')?JSON.parse(window.localStorage.getItem('userDetail')):{username:null};
+            if(userDetail.username){
+                this.$emit("logged-in")
+            }
         }
     }
   }

@@ -166,7 +166,7 @@ input[type="submit"]:active {
 .menu {
   display: grid;
   grid-template-columns: repeat(3, auto);
-  justify-content: end;
+  justify-content: center;
   align-content: center;
   height: 40px;
   width: auto;
@@ -183,9 +183,11 @@ input[type="submit"]:active {
   border-right: 1px solid var(--tertiary);
 }
 
-.menu a {
+.menu .btn-chat {
   color: var(--primary);
-  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 
 /* inbox related styles */
