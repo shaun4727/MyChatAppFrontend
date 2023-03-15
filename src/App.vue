@@ -10,6 +10,8 @@
 <script>
 import LoginView from "@/views/login/login.vue"
 import UserView from "@/views/users/user.vue"
+import { mapMutations } from 'vuex'
+import {SET_USER_OBJECT_MUTATION} from '@/store/storeconstants';
 
 export default{
     components:{
@@ -31,13 +33,24 @@ export default{
     },
     created(){
         this.userDetail = window.localStorage.getItem('userDetail')?JSON.parse(window.localStorage.getItem('userDetail')):{username:null};
+        this.updateUserDetail();
     },
     methods:{
+        ...mapMutations('auth',{
+            updateUserObject: SET_USER_OBJECT_MUTATION // map `this.add()` to `this.$store.commit('increment')`
+        }),
         userLoggedIn(){
             this.userDetail = JSON.parse(window.localStorage.getItem('userDetail'));
         },
         userLoggedOut(){
             this.userDetail = {username:null}
+        },
+        async updateUserDetail(){
+            try{
+                this.updateUserObject(this.userDetail);
+            }catch(err){
+                console.log(err)
+            }
         }
     }
 
