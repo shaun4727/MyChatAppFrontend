@@ -7,7 +7,7 @@
       </div>
 
       <div class="new-message-container new-user">
-        <a href="#" onclick="openModal()">+</a>
+        <a href="#" @click="openModal()">+</a>
       </div>
 
       <div id="users-table">
@@ -37,7 +37,7 @@
 
     <div class="modal-wrapper" id="add-user-modal">
       <div class="modal">
-        <a href="#" onclick="closeModal()" class="modal-close">+</a>
+        <a href="#" @click="closeModal()" class="modal-close">+</a>
         <div class="modal-title">
           <h2>Create New User</h2>
         </div>
@@ -61,7 +61,8 @@
 </template>
   
   <script>
-import viewRouteVue from '@/components/viewRoute.vue'
+import viewRouteVue from '@/components/viewRoute.vue';
+import { getUser } from '@/services/user/user';
 
 
   
@@ -72,16 +73,36 @@ import viewRouteVue from '@/components/viewRoute.vue'
     },
     data(){
         return {
-
+            users: []
         }
     },
     computed: {
 
     },
+    created(){
+        this.usersList();
+    },
     methods:{
         logoutEvent(){
             this.$emit("logged-out");
+        },
+        openModal(){
+            const modal = document.querySelector("#add-user-modal");
+            modal.style.display = "block";
+        },
+        closeModal(){
+            const modal = document.querySelector("#add-user-modal");
+            modal.style.display = "none";
+        },
+        async usersList(){
+            try{
+                const res = await getUser();
+                this.users = res.data.users || [];
+            }catch(err){
+                console.log(err);
+            }
         }
+
     }
   }
   </script>
