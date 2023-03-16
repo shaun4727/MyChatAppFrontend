@@ -1,7 +1,7 @@
 <template>
     <div class="menu">
-      <div class="menu-item"><button href="/inbox" class="btn-chat">Inbox</button></div>
-      <div class="menu-item"><button href="/users" class="btn-chat">Users</button></div>
+      <div class="menu-item"><button @click="inboxView" class="btn-chat">Inbox</button></div>
+      <div class="menu-item"><button @click="userView" class="btn-chat">Users</button></div>
       <div class="menu-item"><button @click="doLogout" class="btn-chat">Logout</button></div>
     </div>
 </template>
@@ -19,6 +19,12 @@ export default{
             }catch(err){
                 console.log(err)
             }
+        },
+        userView(){
+            this.$emit("to-user");
+        },
+        inboxView(){
+            this.$emit("to-inbox");
         }
     },
 }

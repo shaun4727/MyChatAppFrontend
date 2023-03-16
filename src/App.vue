@@ -9,14 +9,14 @@
 
 <script>
 import LoginView from "@/views/login/login.vue"
-import UserView from "@/views/users/user.vue"
+import ChatView from "@/views/ChatView.vue"
 import { mapMutations } from 'vuex'
 import {SET_USER_OBJECT_MUTATION} from '@/store/storeconstants';
 
 export default{
     components:{
         LoginView,
-        UserView
+        ChatView
     },
     data(){
         return {
@@ -26,7 +26,7 @@ export default{
     computed: {
         resolveComponent(){
             if(this.userDetail.username){
-                return "UserView"
+                return "ChatView"
             }
             return "LoginView"
         }

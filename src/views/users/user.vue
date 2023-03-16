@@ -1,5 +1,4 @@
 <template>
-    <viewRouteVue @log-out="logoutEvent"/>
 
     <div class="manageUser-container">
       <div id="title">
@@ -61,7 +60,6 @@
 </template>
   
   <script>
-import viewRouteVue from '@/components/viewRoute.vue';
 import { getUser,addUser,removeUser } from '@/services/user/user';
 
 
@@ -69,7 +67,6 @@ import { getUser,addUser,removeUser } from '@/services/user/user';
   export default {
     name: 'UserView',
     components: {
-        viewRouteVue,
     },
     data(){
         return {
@@ -90,9 +87,6 @@ import { getUser,addUser,removeUser } from '@/services/user/user';
         this.usersList();
     },
     methods:{
-        logoutEvent(){
-            this.$emit("logged-out");
-        },
         openModal(){
             const modal = document.querySelector("#add-user-modal");
             modal.style.display = "block";
