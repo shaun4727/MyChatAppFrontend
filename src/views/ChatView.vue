@@ -17,7 +17,7 @@ import InboxView from './inbox/inbox.vue';
     },
     data(){
         return {
-            load_comp: "UserView"
+            load_comp: "UserView",
         }
     },
     computed: {
@@ -25,9 +25,7 @@ import InboxView from './inbox/inbox.vue';
             return ""
         }
     },
-    created(){
 
-    },
     methods:{
         logoutEvent(){
             this.$emit("logged-out");
@@ -37,7 +35,8 @@ import InboxView from './inbox/inbox.vue';
         },
         loadInboxComp(){
             this.load_comp = "InboxView";
-        }
+        },
+        
     }
   }
   </script>

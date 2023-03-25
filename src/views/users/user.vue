@@ -80,9 +80,6 @@ import { getUser,addUser,removeUser } from '@/services/user/user';
             }
         }
     },
-    computed: {
-
-    },
     created(){
         this.usersList();
     },

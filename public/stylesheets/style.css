@@ -439,7 +439,6 @@ input[type="submit"]:active {
   outline: none;
   padding: 15px;
   border: 2px solid var(--dark);
-  color: #330;
   border-radius: 6px;
   font-size: 1.4rem;
 }

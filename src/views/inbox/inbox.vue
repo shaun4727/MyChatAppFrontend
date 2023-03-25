@@ -31,23 +31,26 @@
 			<a href="#">+</a>
 		</div>
 		<div id="chat-title">
-			<span>{{ currentParticipant?.participant?.name || '' }}</span>
+			<span>{{ currentParticipant?.participant?.name || '' }} </span>
 			<img src="@/assets/images/trash.png" alt="Delete Conversation" />
 		</div>
 		<div id="chat-message-list">
-			<div class="message-row other-message">
-				<div class="message-content">
-					<img :src="currentParticipant?.participant?.url" alt="user" />
-					<div class="message-text">Ok then</div>
-					<div class="message-time">Apr 16</div>
-				</div>
-			</div>
-			<div class="message-row you-message">
-				<div class="message-content">
-					<div class="message-text">Lorem ipsum dolor sit amet</div>
-					<div class="message-time">Apr 16</div>
-				</div>
-			</div>
+			<template v-for="(message,index) in messages" :key="index">
+                <div class="message-row you-message" v-if="message.sender.id == getUserObject.id">
+                    <div class="message-content" >
+                        <div class="message-text">{{ message.text }}</div>
+                        <div class="message-time">{{ message.createdAt }}</div>
+                    </div>
+                </div>
+                <div class="message-row other-message" v-else>
+                    <div class="message-content">
+                        <img :src="currentParticipant?.participant?.url" alt="user" />
+                        <div class="message-text">{{ message.text }}</div>
+                        <div class="message-time">{{ message.createdAt }}</div>
+                    </div>
+                </div>
+                
+            </template>
 		</div>
 		<div id="chat-form">
 			<img src="@/assets/images/attachment.png" alt="Add Attachment" />
@@ -77,6 +80,8 @@
 	import { mapGetters } from 'vuex';
 	import { GET_USER_OBJECT } from '@/store/storeconstants';
     import { addConversation,getConversations,getMessages,deliverMessages} from '@/services/inbox/inbox'
+    import { socket } from "@/socket";
+
 
 	export default {
 		name: 'InboxView',
@@ -87,14 +92,23 @@
                 searchText: '',
                 currentParticipant:{},
                 messages: [],
-                currentMessage: ""
+                currentMessage: "",
+                getMessageFromSocket: false,
+                socketId: null
 			};
 		},
 		async mounted() {
+            socket.connect();
 			await this.usersList();
             await this.getConversations();
+            socket.on("test-msg",(arg)=>{
+                    if(arg.receiver.id == this.getUserObject.id){
+                        this.messages.unshift(arg);
+                    }
+                })
 		},
 		computed: {
+           
 			...mapGetters('auth', {
 				getUserObject: GET_USER_OBJECT,
 			}),
@@ -112,6 +126,7 @@
 		},
 		methods: {
 			async usersList() {
+                
 				try {
 					const res = await getUser();
 					this.users = res.data.users || [];
@@ -120,6 +135,7 @@
 				}
 			},
 			async addConversation(participant) {
+                
                 const data = {
                     "participant": participant.name,
                     "id": participant.id,
@@ -147,6 +163,7 @@
                 document.querySelector("#list").style.display = "none";
             },
             async getConversations(){
+                
                 try{
                     const res = await getConversations();
                     this.conversations = res.data.conversations;
@@ -155,8 +172,17 @@
                 }
             },
             async setNewConversation(conversation){
-                this.currentParticipant = {...conversation};
-                await getMessages(conversation.id);
+                if(this.getUserObject.id == conversation.participant.id){
+                    this.currentParticipant = {
+                        id: conversation.id,
+                        creator:{...conversation.participant},
+                        participant:{...conversation.creator},
+                        created_at: conversation.created_at
+                    }
+                }else{
+                    this.currentParticipant = {...conversation};
+                }
+                this.getMessages(conversation.id);
             },
             async getMessages(id){
                 try{
@@ -169,6 +195,7 @@
                 }
             },
             async sendMessage(){
+                
                 try{
                     if(this.currentMessage){
                         const data = {
@@ -178,23 +205,27 @@
                             avatar: this.currentParticipant.participant.url,
                             conversationId: this.currentParticipant.id
                         }
-                        const newMsg = {
+
+                        this.messages.unshift({
                             sender:{
+                                avatar: null,
                                 id: this.getUserObject.id,
-                                name: this.getUserObject.username,
-                                avatar: null
+                                name: this.getUserObject.username
                             },
                             receiver:{
                                 id: this.currentParticipant.participant.id,
                                 name: this.currentParticipant.participant.name,
-                                avatar: this.currentParticipant.participant.url,
+                                avatar: this.currentParticipant.participant.url
                             },
-                            
-                        }
-                        console.log(newMsg)
-                        const res = await deliverMessages(data);
-                        console.log(res);
+                            id: this.currentParticipant.id,
+                            text: this.currentMessage,
+                            date_time: Date.now(),
+                            createdAt: Date.now()
+                        });
+
+                        await deliverMessages(data);
                         this.currentMessage = '';
+                        
                     }
                 }catch(err){
                     console.log(err);
