@@ -251,13 +251,12 @@ input[type="submit"]:active {
 }
 
 .conversation {
-  display: grid;
-  grid-template-columns: 40px 1fr max-content;
-  grid-gap: 10px;
-  color: #ddd;
-  font-size: 1.3rem;
-  border-bottom: 2px solid var(--dark);
-  padding: 20px 20px 20px 15px;
+    color: #ddd;
+    font-size: 1.3rem;
+    border-bottom: 2px solid var(--dark);
+    padding: 20px 20px 20px 15px;
+    display: flex;
+    justify-content: space-evenly;
 }
 
 .conversation.active,
@@ -269,7 +268,7 @@ input[type="submit"]:active {
   cursor: pointer;
 }
 
-.conversation > img {
+.conversation > div>img {
   grid-row: span 2;
   width: 40px;
   height: 40px;

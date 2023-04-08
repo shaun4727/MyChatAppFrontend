@@ -14,7 +14,7 @@ const URL = "http://localhost:5000";
 export const socket = io(URL);
 
 socket.on("connect", () => {
-  state.connected = true;
+    state.id = socket.id;
 });
 
 socket.on("disconnect", () => {

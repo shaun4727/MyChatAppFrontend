@@ -14,16 +14,30 @@
 		<div id="conversation-list" >
 			<template v-for="(conversation,index) in conversations" :key="index" >
                 <div class="conversation" :class="{active: conversation?.id == currentParticipant?.id}" @click="setNewConversation(conversation)" v-if="getUserObject.id != conversation?.participant?.id">
-                    <img :src="conversation.participant.url" alt="image" />
-                    <div class="title-text">{{ conversation.participant.name }}</div>
-                    <di class="created-date"> {{ conversation.created_at }} </di>
-                    <div class="conversation-message">This is a message</div>
+                    <div>
+                        <img :src="conversation?.participant?.url" alt="image" />
+                        <span style="color:red; position:absolute;" v-if="NewMsg.conversation_id == conversation.id">*</span> 
+                    </div>
+                    <div style="display:flex; flex-direction: column;">
+                        <div style="display:flex;">
+                            <div class="title-text">{{ conversation.participant.name }} </div>
+                            <div class="created-date"> {{ conversation.created_at }} </div>
+                        </div>
+                        <div class="conversation-message" v-show="conversation.last_msg.length"> <span v-if="getUserObject?.id == conversation?.last_msg[0]?.sender.id">You:</span> <span v-else>{{ conversation?.last_msg[0]?.sender?.name?.split(" ")[0] }}:</span>{{ conversation?.last_msg[0]?.text }}</div>
+                    </div>
                 </div>
                 <div class="conversation" :class="{active: conversation.id == currentParticipant.id}" @click="setNewConversation(conversation)" v-else>
-                    <img :src="conversation.creator.url" alt="image" />
-                    <div class="title-text">{{ conversation.creator.name }}</div>
-                    <di class="created-date"> {{ conversation.created_at }} </di>
-                    <div class="conversation-message">This is a message</div>
+                    <div>
+                        <img :src="conversation?.creator?.url" alt="image" />
+                        <span style="color:red; position: absolute;" v-if="NewMsg.conversation_id == conversation.id">*</span>
+                    </div>
+                    <div style="display:flex; flex-direction: column;">
+                        <div style="display:flex;">
+                            <div class="title-text">{{ conversation.creator.name }} </div>
+                            <div class="created-date"> {{ conversation.created_at }} </div>
+                        </div>
+                        <div class="conversation-message" v-show="conversation.last_msg.length"> <span v-if="getUserObject?.id == conversation?.last_msg[0]?.sender.id">You:</span> <span v-else>{{ conversation?.last_msg[0]?.sender?.name?.split(" ")[0] }}:</span>{{ conversation?.last_msg[0]?.text }}</div>
+                    </div>
                 </div>
             </template>
 		</div>
@@ -32,10 +46,10 @@
 		</div>
 		<div id="chat-title">
 			<span>{{ currentParticipant?.participant?.name || '' }} </span>
-			<img src="@/assets/images/trash.png" alt="Delete Conversation" />
+            <i class="material-icons call" @click="callUser(currentParticipant?.participant?.id)" v-show="currentParticipant?.participant?.name">call</i>
 		</div>
 		<div id="chat-message-list">
-			<template v-for="(message,index) in messages" :key="index">
+			<template v-for="(message,index) in GotMessages" :key="index">
                 <div class="message-row you-message" v-if="message.sender.id == getUserObject.id">
                     <div class="message-content" >
                         <div class="message-text">{{ message.text }}</div>
@@ -73,6 +87,10 @@
 			</div>
 		</div>
 	</div>
+    <div class="video">
+        <video width="320" height="240" autoplay id="videoElement">
+        </video>
+    </div>
 </template>
 
 <script>
@@ -80,7 +98,9 @@
 	import { mapGetters } from 'vuex';
 	import { GET_USER_OBJECT } from '@/store/storeconstants';
     import { addConversation,getConversations,getMessages,deliverMessages} from '@/services/inbox/inbox'
-    import { socket } from "@/socket";
+    // import { socket,state } from "@/socket";
+    import { io } from "socket.io-client";
+    import Peer from "simple-peer";
 
 
 	export default {
@@ -91,24 +111,44 @@
                 conversations: [],
                 searchText: '',
                 currentParticipant:{},
+                currentConversation: [],
                 messages: [],
                 currentMessage: "",
+                NewMsg:"",
+                newMessage: "",
                 getMessageFromSocket: false,
-                socketId: null
+                socketId: null,
+                videoTag: null,
+                callState:{
+                    me: null,
+                    stream: null,
+                    receivingCall: null,
+                    caller: null,
+                    callerSignal: null,
+                    callAccepted: null,
+                    idTocall: null,
+                    callEnded: null,
+                    name: null,
+                    myVideo: null,
+                    userVideo: null,
+                    connection: null
+                }
 			};
 		},
 		async mounted() {
-            socket.connect();
+            this.videoTag = document.querySelector("#videoElement");
 			await this.usersList();
             await this.getConversations();
-            socket.on("test-msg",(arg)=>{
-                    if(arg.receiver.id == this.getUserObject.id){
-                        this.messages.unshift(arg);
-                    }
-                })
+            this.acceptMsg();
+            // this.videoCall();
 		},
+        unmounted(){
+            this.stopBothVideoAndAudio(this.callState.myVideo);
+        },
 		computed: {
-           
+           socket(){
+                return io("http://localhost:5000");
+           },
 			...mapGetters('auth', {
 				getUserObject: GET_USER_OBJECT,
 			}),
@@ -122,9 +162,97 @@
                             .includes(this.searchText.toString().toLowerCase()))
                 }
                 return this.participants;
+            },
+            GotMessages(){
+                return this.currentConversation.last_msg;
             }
 		},
 		methods: {
+            acceptMsg(){
+                this.socket.on(`test-msg`,(arg)=>{
+                    this.NewMsg = arg;
+                    if(arg.receiver.id == this.getUserObject.id){
+                        this.messages.unshift(arg);
+                    }
+                    this.conversations.forEach(conversation => {
+                        if(conversation.id == arg.conversation_id){
+                            conversation.last_msg.unshift(arg)
+                        }
+                    })
+                })
+            },
+            stopBothVideoAndAudio(stream) {
+                if(!stream) return;
+                stream.getTracks().forEach(function(track) {
+                    if (track.readyState == 'live') {
+                        track.stop();
+                    }
+                });
+            },
+            async videoCall(){
+                await navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
+                    this.callState.stream = stream;
+                    this.callState.myVideo = stream;
+                    this.videoTag.srcObject = this.callState.myVideo;
+                })
+
+                this.socket.on(`me`, (arg) => {
+                    this.callState.me = arg;
+                })
+
+                this.socket.on("call user", (data) => {
+                    this.callState.receivingCall = true;
+                    this.callState.caller = data.from;
+                    this.callState.name = data.name;
+                    this.callState.callerSignal = data.signal;
+                })
+            },
+            callUser(id){
+                
+                const peer = new Peer({
+                    initiator: true,
+                    trickle: false,
+                    stream: this.callState.stream
+                })
+                peer.on("signal", (data) => {
+                    this.socket.emit("callUser", {
+                        userToCall: id,
+                        signalData: data,
+                        from: this.me,
+                        name: this.name
+                    })
+                })
+                peer.on("stream", (stream) => {
+                    this.callState.userVideo = stream
+                })
+                this.socket.on("callAccepted", (signal) => {
+                    this.callState.callAccepted = true;
+                    peer.signal(signal)
+                })
+
+                this.callState.connection = peer
+            },
+            answerCall(){
+                this.callState.callAccepted = true;
+                const peer = new Peer({
+                    initiator: false,
+                    trickle: false,
+                    stream: this.callState.stream
+                })
+                peer.on("signal", (data) => {
+                    this.socket.emit("answerCall", { signal: data, to: this.callState.caller })
+                })
+                peer.on("stream", (stream) => {
+                    this.callState.userVideo = stream
+                })
+
+                peer.signal(this.callState.callerSignal)
+                this.callState.connection = peer
+            },
+            leaveCall(){
+                this.callState.callEnded = true;
+                this.callState.connection = null;
+            },
 			async usersList() {
                 
 				try {
@@ -135,7 +263,6 @@
 				}
 			},
 			async addConversation(participant) {
-                
                 const data = {
                     "participant": participant.name,
                     "id": participant.id,
@@ -159,7 +286,6 @@
                 document.querySelector("#list").style.display = "block";
             },
             hideList(){
-                console.log("hide")
                 document.querySelector("#list").style.display = "none";
             },
             async getConversations(){
@@ -172,6 +298,7 @@
                 }
             },
             async setNewConversation(conversation){
+                this.currentConversation = conversation;
                 if(this.getUserObject.id == conversation.participant.id){
                     this.currentParticipant = {
                         id: conversation.id,
@@ -205,8 +332,7 @@
                             avatar: this.currentParticipant.participant.url,
                             conversationId: this.currentParticipant.id
                         }
-
-                        this.messages.unshift({
+                        const msg = {
                             sender:{
                                 avatar: null,
                                 id: this.getUserObject.id,
@@ -221,7 +347,15 @@
                             text: this.currentMessage,
                             date_time: Date.now(),
                             createdAt: Date.now()
-                        });
+                        };
+                        console.log(msg)
+                        // this.messages.unshift(msg);
+
+                        // this.conversations.forEach(conversation => {
+                        //     if(conversation.id == this.currentParticipant.id){
+                        //         conversation.last_msg.unshift(msg)
+                        //     }
+                        // })
 
                         await deliverMessages(data);
                         this.currentMessage = '';
@@ -233,6 +367,7 @@
             }
 
 		},
+
 	};
 </script>
 
@@ -265,6 +400,10 @@
 		font-size: 14px;
 		margin: 5px 0 0 5px;
 	}
+    .call:hover{
+        cursor: pointer;
+    }
+
 
 
 </style>
