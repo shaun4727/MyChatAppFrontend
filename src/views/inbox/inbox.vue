@@ -98,7 +98,6 @@
 	import { mapGetters } from 'vuex';
 	import { GET_USER_OBJECT } from '@/store/storeconstants';
     import { addConversation,getConversations,getMessages,deliverMessages} from '@/services/inbox/inbox'
-    // import { socket,state } from "@/socket";
     import { io } from "socket.io-client";
     import Peer from "simple-peer";
 
@@ -112,10 +111,8 @@
                 searchText: '',
                 currentParticipant:{},
                 currentConversation: [],
-                messages: [],
                 currentMessage: "",
                 NewMsg:"",
-                newMessage: "",
                 getMessageFromSocket: false,
                 socketId: null,
                 videoTag: null,
@@ -332,30 +329,6 @@
                             avatar: this.currentParticipant.participant.url,
                             conversationId: this.currentParticipant.id
                         }
-                        const msg = {
-                            sender:{
-                                avatar: null,
-                                id: this.getUserObject.id,
-                                name: this.getUserObject.username
-                            },
-                            receiver:{
-                                id: this.currentParticipant.participant.id,
-                                name: this.currentParticipant.participant.name,
-                                avatar: this.currentParticipant.participant.url
-                            },
-                            id: this.currentParticipant.id,
-                            text: this.currentMessage,
-                            date_time: Date.now(),
-                            createdAt: Date.now()
-                        };
-                        console.log(msg)
-                        // this.messages.unshift(msg);
-
-                        // this.conversations.forEach(conversation => {
-                        //     if(conversation.id == this.currentParticipant.id){
-                        //         conversation.last_msg.unshift(msg)
-                        //     }
-                        // })
 
                         await deliverMessages(data);
                         this.currentMessage = '';
